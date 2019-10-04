@@ -228,6 +228,35 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 
                 if (requestedResource.startsWith(SSE_LISTEN_URL_PREFIX)) {
                     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+                    
+                    //Hack: Add cors headers
+                    //Better:
+                    /*
+                     * Jenkins jenkins = Jenkins.getInstance();
+                    import org.jenkinsci.plugins.corsfilter.*;
+					cors=Jenkins.instance.pluginManager.plugins.find {it.getShortName()=='cors-filter' }
+					println(cors.getPlugin().dump())
+					corsClass=AccessControlsFilter.class
+					println(Jenkins.instance.getDescriptor(corsClass).dump())
+					//From the cors plugin
+					 *             
+				resp.addHeader("Access-Control-Allow-Credentials", "true");
+	            resp.addHeader("Access-Control-Allow-Origin", origin);
+	            resp.addHeader("Access-Control-Allow-Methods", getDescriptor().getAllowedMethods());
+	            resp.addHeader("Access-Control-Allow-Headers", getDescriptor().getAllowedHeaders());
+	            resp.addHeader("Access-Control-Expose-Headers", getDescriptor().getExposedHeaders());
+	            resp.addHeader("Access-Control-Max-Age", getDescriptor().getMaxAge());
+
+                     */
+                    
+                    String origin = httpServletRequest.getHeader("Origin");
+                    httpServletResponse.addHeader("Access-Control-Allow-Credentials", "true");
+                    httpServletResponse.setHeader("Access-Control-Allow-Origin", origin);
+                    httpServletResponse.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, HEAD");
+                    httpServletResponse.setHeader("Access-Control-Allow-Headers", "X-PINGOTHER, LAST-EVENT-ID, Origin, X-Requested-With, Content-Type, Accept");
+                    httpServletResponse.setHeader("Access-Control-Max-Age", "1728000");
+ 
+                    
                     String[] clientTokens = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length()).split(";");
                     String clientId = clientTokens[0];
                     
