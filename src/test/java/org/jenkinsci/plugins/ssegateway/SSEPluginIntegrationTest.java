@@ -24,7 +24,7 @@
 package org.jenkinsci.plugins.ssegateway;
 
 import com.github.eirslett.maven.plugins.frontend.lib.TaskRunnerException;
-import hudson.model.Job;
+import org.jenkinsci.plugins.pubsub.PubsubBus;
 import org.jenkinsci.test.node.GulpRunner;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,8 +44,9 @@ public class SSEPluginIntegrationTest {
     @Before
     public void setupRealm() {
         jenkins.jenkins.setSecurityRealm(jenkins.createDummySecurityRealm());
+        PubsubBus.getBus().start();
     }
-    
+
     @Test
     public void test_no_filter() throws TaskRunnerException, IOException {
         // Create a job. We will trigger a build of the job inside
@@ -57,7 +58,7 @@ public class SSEPluginIntegrationTest {
 
         gulpRunner.runIntegrationSpec("sse-plugin-no-filter");
     }
-    
+
     @Test
     public void test_with_filter() throws TaskRunnerException, IOException {
         // Create a job. We will trigger a build of the job inside
@@ -69,7 +70,7 @@ public class SSEPluginIntegrationTest {
 
         gulpRunner.runIntegrationSpec("sse-plugin-with-filter");
     }
-    
+
     @Test
     public void test_store_and_forward() throws TaskRunnerException, IOException {
         // Create a job. We will trigger a build of the job inside
@@ -81,4 +82,31 @@ public class SSEPluginIntegrationTest {
 
         gulpRunner.runIntegrationSpec("sse-plugin-store-and-forward");
     }
+
+    @Test
+    public void test_retryqueue_timeout() throws TaskRunnerException, IOException {
+        // Create a job. We will trigger a build of the job inside
+        // sse-plugin-retryqueue-timeout.js (the integration test). That build execution
+        // should trigger events to the event subscribers in the test.
+        jenkins.createFreeStyleProject("sse-gateway-test-job");
+
+        // set lifetime for retry events to 15 sec - default is 300 sec
+        // in the integration test waiting time is 20000ms until restarting the proxy
+        // -> all queued event should be removed from the queue
+        long saveEventLifetime = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME;
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = 15;
+
+        // set delay for retry loop = 500ms - default is 100ms
+        long saveProcessingDelay = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY;
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = 500;
+
+        GulpRunner gulpRunner = new GulpRunner(jenkins);
+
+        gulpRunner.runIntegrationSpec("sse-plugin-retryqueue-timeout");
+
+        // restore saved values
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = saveEventLifetime;
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = saveProcessingDelay;
+    }
+
 }

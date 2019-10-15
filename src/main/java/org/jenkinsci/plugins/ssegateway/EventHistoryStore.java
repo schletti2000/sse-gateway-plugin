@@ -36,8 +36,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
@@ -48,6 +46,8 @@ import org.jenkinsci.plugins.pubsub.PubsubBus;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Channel event message history store.
@@ -60,7 +60,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public final class EventHistoryStore {
 
-    private static final Logger LOGGER = Logger.getLogger(EventHistoryStore.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger( EventHistoryStore.class.getName());
     
     private static File historyRoot;
     private static long expiresAfter = (1000 * 60); // default of 1 minutes
@@ -76,7 +76,7 @@ public final class EventHistoryStore {
         // In a non-test mode, we only allow setting of the historyRoot 
         // once (during plugin init - see Endpoint class).
         if (EventHistoryStore.historyRoot != null && !Util.isTestEnv()) {
-            LOGGER.log(Level.SEVERE, "Invalid attempt to change historyRoot after it has already been set. Ignoring.");
+            LOGGER.warn("Invalid attempt to change historyRoot after it has already been set. Ignoring.");
             return;
         }
         
@@ -91,7 +91,7 @@ public final class EventHistoryStore {
     static void setExpiryMillis(long expiresAfterMillis) {
         // In a non-test mode, we don't allow setting of the expiresAfter at all.
         if (!Util.isTestEnv()) {
-            LOGGER.log(Level.SEVERE, "Invalid attempt to change expiresAfterMillis. Ignoring.");
+            LOGGER.warn("Invalid attempt to change expiresAfterMillis. Ignoring.");
             return;
         }
         EventHistoryStore.expiresAfter = expiresAfterMillis;
@@ -130,10 +130,10 @@ public final class EventHistoryStore {
         
             FileUtils.writeStringToFile(writeEventFile, message.toJSON(), "UTF-8");
             if (!writeEventFile.renameTo(readEventFile)) {
-                LOGGER.log(Level.SEVERE, "Unexpected error renaming EventHistoryStore entry file to {0}.", readEventFile.getAbsolutePath());
+                LOGGER.warn("Unexpected error renaming EventHistoryStore entry file to {}.", readEventFile.getAbsolutePath());
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Unexpected error persisting EventHistoryStore entry file.", e);
+            LOGGER.error("Unexpected error persisting EventHistoryStore entry file.", e);
         }
     }
     
@@ -165,7 +165,6 @@ public final class EventHistoryStore {
     static int getChannelEventCount(@Nonnull String channelName) throws IOException {
         Path dirPath = Paths.get(getChannelDir(channelName).toURI());
         int count = 0;
-
         try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             for (final Path entry : dirStream) {
                 count++;
@@ -180,6 +179,9 @@ public final class EventHistoryStore {
      */
     static void deleteAllHistory() throws IOException {
         assertHistoryRootSet();
+        for(File directory : channelDirs.values()){
+            deleteAllFilesInDir(directory, null);
+        }
         deleteAllFilesInDir(EventHistoryStore.historyRoot, null);
     }
 
@@ -211,7 +213,9 @@ public final class EventHistoryStore {
     
     private synchronized static void deleteAllFilesInDir(File dir, Long olderThan) throws IOException {
         Path dirPath = Paths.get(dir.toURI());
-        
+        if(!Files.exists(dirPath)){
+            return;
+        }
         try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             for (final Path entry : dirStream) {
                 File file = entry.toFile();
@@ -220,7 +224,7 @@ public final class EventHistoryStore {
                 }
                 if (olderThan == null || file.lastModified() < olderThan) {
                     if (!file.delete()) {
-                        LOGGER.log(Level.SEVERE, "Error deleting file " + file.getAbsolutePath());
+                        LOGGER.warn("Error deleting file {}", file.getAbsolutePath());
                     }
                 }
             }
@@ -235,22 +239,18 @@ public final class EventHistoryStore {
     
     public synchronized static void enableAutoDeleteOnExpire() {
         if (autoExpireTimer != null) {
+            LOGGER.warn("AutoExpireTimer was already enable.");
             return;
         }
         
         // Set up a timer that runs the DeleteStaleHistoryTask 3 times over the
         // duration of the event expiration timeout. By default this will be
-        // every 20 seconds i.e. in that case, events are never left lying around
-        // for more than 20 seconds past their expiration.
+        // every 10 seconds i.e. in that case, events are never left lying around
+        // for more than 10 seconds past their expiration.
         long taskSchedule = expiresAfter / 3;
-        autoExpireTimer = new Timer();
+        autoExpireTimer = new Timer("EventHistoryStore.autoExpireTimer");
         autoExpireTimer.schedule(new DeleteStaleHistoryTask(), taskSchedule, taskSchedule);
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                disableAutoDeleteOnExpire();
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> disableAutoDeleteOnExpire(), "EventHistoryStore.disableAutoExpireTimer"));
     }
     
     public synchronized static void disableAutoDeleteOnExpire() {
@@ -267,7 +267,7 @@ public final class EventHistoryStore {
             try {
                 deleteStaleHistory();
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error deleting stale/expired events from EventHistoryStore.", e);
+                LOGGER.warn("Error deleting stale/expired events from EventHistoryStore.", e);
             }
         }
     }

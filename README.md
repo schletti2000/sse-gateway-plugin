@@ -1,6 +1,11 @@
-[Server Sent Events (SSE)](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events) Gateway plugin for Jenkins.
+# [Server Sent Events (SSE)](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events)
 
-Uses the [pubsub-light-module] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
+Gateway plugin for Jenkins.
+Uses the [pubsub-light-plugin] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
+
+[![Build Status](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/)
+[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/sse-gateway.svg)](https://plugins.jenkins.io/sse-gateway)
+[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/sse-gateway.svg?color=blue)](https://plugins.jenkins.io/sse-gateway)
 
 # Install
 
@@ -10,19 +15,26 @@ npm install --save @jenkins-cd/sse-gateway
 
 # Requirements
 
-This plugin requires Jenkins version 2.2 or later.
+This plugin requires Jenkins version 2.60.3 or later.
 
-2.2+ is needed because it supports Servlet 3 asynchronous requests, which are needed for Server Sent Events. 
+2.60.3+ is needed because it supports Servlet 3 asynchronous requests, which are needed for Server Sent Events and its the first version of Jenkins that requires java 8.
 
 # Usage
 
 The API is quite simple, allowing you to `subscribe` to (and `unsubscribe` from) Jenkins event
 notification "channels".
 
+## Configuration
+
+Due to some possible memory leak if message are never delivered, the messages have some System properties configuration parameters to avoid such issue:
+* `org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME` (default 300sec): definite how long an entry can stay in the queue
+* `org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY` (default 250ms): time between each send retry
+
+
 ## Subscribing to "job" channel events (basic)
 
 The "job" channel is where you listen for events relating to Jenkins Jobs, all of which are enumerated in
- [the Events.JobChannel Javadoc](http://jenkinsci.github.io/pubsub-light-module/org/jenkinsci/plugins/pubsub/Events.JobChannel.html).
+ [the Events.JobChannel Javadoc](http://jenkinsci.github.io/pubsub-light-plugin/org/jenkinsci/plugins/pubsub/Events.JobChannel.html).
 
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
@@ -148,4 +160,4 @@ The SSE Gateway client code uses the `@jenkins-cd/logging` package for client-si
 
 See the [sse-gateway-sample-plugin](https://github.com/tfennelly/sse-gateway-sample-plugin).
 
-[pubsub-light-module]: https://github.com/jenkinsci/pubsub-light-module
+[pubsub-light-plugin]: https://github.com/jenkinsci/pubsub-light-plugin
