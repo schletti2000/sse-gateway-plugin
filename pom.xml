@@ -9,7 +9,7 @@
     <relativePath />
   </parent>
   <artifactId>sse-gateway</artifactId>
-  <version>1.21-SNAPSHOT</version>
+  <version>1.21.1-CORS</version>
   <packaging>hpi</packaging>
 
   <properties>
@@ -19,8 +19,8 @@
     <npm.version>3.7.3</npm.version>
   </properties>
 
-  <name>Server Sent Events (SSE) Gateway Plugin</name>
-  <description>Server Sent Events (SSE) Gateway Plugin</description>
+  <name>Server Sent Events (SSE) Gateway Plugin (Custom)</name>
+  <description>Server Sent Events (SSE) Gateway Plugin (Customized with CORS Support)</description>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/SSE+Gateway+Plugin</url>
 
   <scm>

@@ -237,18 +237,18 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                     /*
                      * Jenkins jenkins = Jenkins.getInstance();
                     import org.jenkinsci.plugins.corsfilter.*;
-					cors=Jenkins.instance.pluginManager.plugins.find {it.getShortName()=='cors-filter' }
-					println(cors.getPlugin().dump())
-					corsClass=AccessControlsFilter.class
-					println(Jenkins.instance.getDescriptor(corsClass).dump())
-					//From the cors plugin
-					 *             
-				resp.addHeader("Access-Control-Allow-Credentials", "true");
-	            resp.addHeader("Access-Control-Allow-Origin", origin);
-	            resp.addHeader("Access-Control-Allow-Methods", getDescriptor().getAllowedMethods());
-	            resp.addHeader("Access-Control-Allow-Headers", getDescriptor().getAllowedHeaders());
-	            resp.addHeader("Access-Control-Expose-Headers", getDescriptor().getExposedHeaders());
-	            resp.addHeader("Access-Control-Max-Age", getDescriptor().getMaxAge());
+                    cors=Jenkins.instance.pluginManager.plugins.find {it.getShortName()=='cors-filter' }
+                    println(cors.getPlugin().dump())
+                    corsClass=AccessControlsFilter.class
+                    println(Jenkins.instance.getDescriptor(corsClass).dump())
+                    //From the cors plugin
+                     *             
+                    resp.addHeader("Access-Control-Allow-Credentials", "true");
+                    resp.addHeader("Access-Control-Allow-Origin", origin);
+                    resp.addHeader("Access-Control-Allow-Methods", getDescriptor().getAllowedMethods());
+                    resp.addHeader("Access-Control-Allow-Headers", getDescriptor().getAllowedHeaders());
+                    resp.addHeader("Access-Control-Expose-Headers", getDescriptor().getExposedHeaders());
+                    resp.addHeader("Access-Control-Max-Age", getDescriptor().getMaxAge());
 
                      */
                     
